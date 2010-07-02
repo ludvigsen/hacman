@@ -1,3 +1,4 @@
 import System
 
-main = do <- system "pacman -Syu"
+main = do
+     system "pacman -Syu"
