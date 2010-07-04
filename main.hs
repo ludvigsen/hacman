@@ -22,8 +22,8 @@ data Package =
                buildDate :: String,
                md5sum :: String,
                description :: String
-              }
-              deriving (Eq, Show, Read)
+             }
+             deriving (Eq, Show, Read)
 
 
 -- Theese functions is supposed to return a attribute.
