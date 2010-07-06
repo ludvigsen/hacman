@@ -89,14 +89,11 @@ parseLine = do
 data PacError = FatalError | NotRootError | ParseError | OtherError String
 	deriving Show
 
-instance MonadError PacError Pacman where
-	throwError = error . ("Pacman Error:" ++) . show
-
 instance Error PacError where
 	strMsg s = OtherError s
 
 newtype Pacman a = Pacman {runPac :: ErrorT PacError IO a}
-	deriving (Functor, Monad, MonadIO)
+	deriving (Functor, Monad, MonadIO, MonadError PacError)
 pacman =  runErrorT . runPac
 
 parsePac :: Show a => Parser a -> String -> Pacman a
@@ -115,10 +112,4 @@ qs xs =	do
 	(pid,pkgOut) <- liftIO (pipeFrom "pacman" ("-Qi":[tail $ takeWhile (/= ' ') (dropWhile (/= '/') output)]))
 	x <- parsePac parsePackages pkgOut
 	return x
-
-run :: Show a => Parser a -> String -> IO ()
-run p input = case (parse p "" input) of
-              Left err -> do putStr "parse error at "
-                             print err 
-              Right x -> print x
 
