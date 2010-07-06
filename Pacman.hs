@@ -81,7 +81,7 @@ parseLine = do
                 x <- sepBy (sepEndBy (many1 $ noneOf " \n") (char ' ')) (char ' ')
                 return (intercalate " " y, map (intercalate " ") x)
 		     
-data PacError = FatalError | NotRootError | ParseError | OtherError String
+data PacError = FatalError | NotRootError | ParseError String | OtherError String
 	deriving Show
 
 instance Error PacError where
@@ -93,7 +93,7 @@ pacman =  runErrorT . runPac
 
 parsePac :: Show a => Parser a -> String -> Pacman a
 parsePac p input = case (parse p "" input) of
-              Left err -> throwError ParseError
+              Left err -> throwError (ParseError ((show err) ++ "\ngiven Input: \n" ++ input))
               Right x -> return x
 
 si :: [String] -> Pacman [Package]
@@ -105,5 +105,5 @@ qs :: [String] -> Pacman [Package]
 qs xs =	do
 	(pid,output) <- liftIO (pipeFrom "pacman" ("-Qs":xs))
 	(pid,pkgOut) <- liftIO (pipeFrom "pacman" ("-Qi":[tail $ takeWhile (/= ' ') (dropWhile (/= '/') output)]))
-	x <- parsePac parsePackages pkgOut
+	x <- parsePac parsePackages (pkgOut)
 	return x

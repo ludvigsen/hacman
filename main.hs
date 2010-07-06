@@ -21,10 +21,10 @@ printPackage p = "Name:            " ++ (show $ name p) ++ "\n" ++
                  "Description:     " ++ (show $ description p) ++ "\n"
 
 main = do
-	(Right pacmanPkg) <- (pacman (si ["pacman"])) `catchError` (\e -> error "fatalERROR§!!!!§!§")
+	(Right pacmanPkg) <- pacman ((si ["pacman"]) `catchError` (\(ParseError e) -> error e))
 	putStr $ printPackage $ head pacmanPkg
 	print (name $ head pacmanPkg)
 	print (licenses $ head pacmanPkg)
-	(Right packy) <- (pacman (qs ["pacman-mirrorlist"])) `catchError` (\e -> error "MoaFATAL!!!!")
+	(Right packy) <- pacman (qs ["pacman-mirrorlist"] `catchError` (\(ParseError e) -> error e))
 	print (licenses $ head packy)
 
