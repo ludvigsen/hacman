@@ -7,6 +7,7 @@ import Text.ParserCombinators.Parsec
 import System.IO
 import System.Exit
 import Text.Printf
+import Data.List
 
 import Control.Monad.Error
 import Control.Exception hiding (try)
@@ -38,15 +39,12 @@ parsePackages = do xss <- parsePackageList
 
 parsePackageList :: Parser [[(String,[String])]]
 parsePackageList =
-	do xs <- parseLines
-	   if xs == []
-	    then return []
-            else do {char '\n';xss <- parsePackageList; return (xs:xss)} <|> return [xs]
+	do xss <- parseLines `endBy` (char '\n')
+	   return xss
 
-parseLines = do x <- parseLine <|> return ("",[""])
-		if x == ("",[""]) 
-                 then return [] 
-                 else do {char '\n';ys <- parseLines; return (x:ys)} <|> return [x]
+parseLines = do
+		xs <-  parseLine `endBy` (char '\n')
+		return xs
 
 getPkg xs = Package {name = getHead "Name",
               version = getHead "Version",
@@ -77,14 +75,11 @@ getPkg xs = Package {name = getHead "Name",
 
 parseLine :: Parser (String,[String])
 parseLine = do 
-		y <- try (do {x <- many1 (noneOf " \n"); 
-			  space;
-                          y <- many1 letter;
-		       	  return (x ++ (' ':y))}) <|> many1 (noneOf " \n")
-                many space
+		y <- sepEndBy (many1 $ noneOf " :\n") (char ' ')
+                many (char ' ')
 		string ": "
-                x <- sepBy (many (noneOf "\n")) (string "  ")
-                return (y, x)
+                x <- sepBy (sepEndBy (many1 $ noneOf " \n") (char ' ')) (char ' ')
+                return (intercalate " " y, map (intercalate " ") x)
 		     
 data PacError = FatalError | NotRootError | ParseError | OtherError String
 	deriving Show
@@ -112,4 +107,3 @@ qs xs =	do
 	(pid,pkgOut) <- liftIO (pipeFrom "pacman" ("-Qi":[tail $ takeWhile (/= ' ') (dropWhile (/= '/') output)]))
 	x <- parsePac parsePackages pkgOut
 	return x
-
