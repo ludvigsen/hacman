@@ -95,9 +95,7 @@ parsePackageList =
 	do xss <- parseLines `endBy` (char '\n')
 	   return xss
 	where
-	parseLines = do
-		     xs <-  parseLine `endBy` (char '\n')
-		     return xs
+	parseLines = parseLine `endBy` (char '\n')
 
 -- | A parsec parser that parses one line in one package given by pacman(packetManager).
 parseLine :: Parser (String,[String])
@@ -135,13 +133,11 @@ parsePac p input = case (parse p "" input) of
 si :: [String] -> Pacman [Package]
 si xs = do
        (pid, output) <- liftIO (pipeFrom "pacman" ("-Si":xs))
-       packages <- parsePac parsePackages output
-       return packages
+       parsePac parsePackages output
 
 -- | does "pacman -Qs" and returns the list of packages.
 qs :: [String] -> Pacman [Package]
 qs xs =	do
 	(pid,output) <- liftIO (pipeFrom "pacman" ("-Qs":xs))
 	(pid,pkgOut) <- liftIO (pipeFrom "pacman" ("-Qi":[tail $ takeWhile (/= ' ') (dropWhile (/= '/') output)]))
-	x <- parsePac parsePackages (pkgOut)
-	return x
+	parsePac parsePackages (pkgOut)
