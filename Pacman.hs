@@ -122,7 +122,7 @@ newtype Pacman a = Pacman {runPac :: ErrorT PacError IO a}
 	deriving (Functor, Monad, MonadIO, MonadError PacError)
 
 -- | pacman accesses the underlying IO monad of Pacman.
-pacman a -> IO (Either PacError a)
+pacman :: Pacman a -> IO (Either PacError a)
 pacman =  runErrorT . runPac
 
 -- | parsePac lifts a parsec Parser to the Pacman monad. 
