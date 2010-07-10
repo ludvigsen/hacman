@@ -1,5 +1,16 @@
 {-# OPTIONS -fglasgow-exts #-}
-module Pacman where
+-- | The pacman module gives the Haskell bindings to pacman.
+-- Here by package attribute is for instance a package name, version
+-- downloadSize, url and so on. A package is the collection of such
+-- attributes. By pacman(packetManager) we mean the software that is
+-- pacman. 
+module Pacman
+	(Package(..),
+	 PacError(..),
+	 pacman,
+	 si,
+	 qs)
+	where
 import System.Cmd.Utils
 import Char
 import Text.ParserCombinators.Parsec
@@ -12,6 +23,12 @@ import Data.List
 import Control.Monad.Error
 import Control.Exception hiding (try)
 
+-- | Package contains the information given by
+--  pacman(packetManager) of a package. That is a list of attributes of
+-- name, version, licenses, dependecies and so on... 
+-- if an attribute is not found or listed with none by
+-- pacman it's set to Nothing, otherwise Just a, where a 
+-- is the attribute.
 data Package =
      Package {name :: Maybe String,
               version :: Maybe String,
@@ -34,18 +51,10 @@ data Package =
               }
 	deriving (Show)
 
-parsePackages = do xss <- parsePackageList
-    	 	   return (map getPkg xss)
-
-parsePackageList :: Parser [[(String,[String])]]
-parsePackageList =
-	do xss <- parseLines `endBy` (char '\n')
-	   return xss
-
-parseLines = do
-		xs <-  parseLine `endBy` (char '\n')
-		return xs
-
+-- | given a list of pair of attribute name and
+-- attruibute value (as a String), getPkg makes a package with those
+-- attributes.
+getPkg :: [([Char], [[Char]])] -> Package
 getPkg xs = Package {name = getHead "Name",
               version = getHead "Version",
               url = getHead "Url",
@@ -73,6 +82,24 @@ getPkg xs = Package {name = getHead "Name",
 	handleNone Nothing = Nothing
 	handleNone a = a 
 
+-- | A parsec parser that parses a list of packages
+-- as given by for instance
+-- "pacman -Si" and "pacman -Qi"
+parsePackages :: Parser [Package]
+parsePackages = do xss <- parsePackageList
+    	 	   return (map getPkg xss)
+
+-- | A parsec parser that parses one package as given by pacman(packetManager).
+parsePackageList :: Parser [[(String,[String])]]
+parsePackageList =
+	do xss <- parseLines `endBy` (char '\n')
+	   return xss
+	where
+	parseLines = do
+		     xs <-  parseLine `endBy` (char '\n')
+		     return xs
+
+-- | A parsec parser that parses one line in one package given by pacman(packetManager).
 parseLine :: Parser (String,[String])
 parseLine = do 
 		y <- sepEndBy (many1 $ noneOf " :\n") (char ' ')
@@ -81,26 +108,37 @@ parseLine = do
                 x <- sepBy (sepEndBy (many1 $ noneOf " \n") (char ' ')) (char ' ')
                 return (intercalate " " y, map (intercalate " ") x)
 		     
+
+-- | PacError is the errorType of Pacman as a MonadError.
 data PacError = FatalError | NotRootError | ParseError String | OtherError String
 	deriving Show
 
 instance Error PacError where
 	strMsg s = OtherError s
 
+-- | Pacman is the MonadTransformer that pacman(packetManager) is wrapped in.
+-- Its a MonadTransformer of ErrorT PacError IO a.
 newtype Pacman a = Pacman {runPac :: ErrorT PacError IO a}
 	deriving (Functor, Monad, MonadIO, MonadError PacError)
+
+-- | pacman accesses the underlying IO monad of Pacman.
+pacman a -> IO (Either PacError a)
 pacman =  runErrorT . runPac
 
+-- | parsePac lifts a parsec Parser to the Pacman monad. 
 parsePac :: Show a => Parser a -> String -> Pacman a
 parsePac p input = case (parse p "" input) of
               Left err -> throwError (ParseError ((show err) ++ "\ngiven Input: \n" ++ input))
               Right x -> return x
 
+-- | does "pacman -Si" and returns the list of packages.
 si :: [String] -> Pacman [Package]
 si xs = do
        (pid, output) <- liftIO (pipeFrom "pacman" ("-Si":xs))
        packages <- parsePac parsePackages output
        return packages
+
+-- | does "pacman -Qs" and returns the list of packages.
 qs :: [String] -> Pacman [Package]
 qs xs =	do
 	(pid,output) <- liftIO (pipeFrom "pacman" ("-Qs":xs))
