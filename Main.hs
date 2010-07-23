@@ -3,29 +3,16 @@ import Pacman
 import Control.Monad.Error
 import Graphics.UI.Gtk
 import System.Glib.Signals (on)
-import Data.List ( isPrefixOf )
+import Data.List
 import Data.Char ( toLower )
 import Data.Maybe
 
-mergeStringList :: [String] -> String
-mergeStringList (x:xs) = x ++ " " ++ mergeStringList xs
-mergeStringList [] = []
-
-safeFromJustString :: (Maybe String) -> String
-safeFromJustString (Just x) = x
-safeFromJustString Nothing = ""
-
-safeFromJustStrings :: (Maybe [String]) -> [String]
-safeFromJustStrings (Just x) = x
-safeFromJustStrings  Nothing = [""]
-
-
-getPackageValue getter package = safeFromJustString (getter package)
+getPackageValue getter package = fromMaybe "" (getter package)
 
 getPackageValues :: (Package -> (Maybe [String])) -> Package -> String
-getPackageValues getter package | (safeFromJustStrings value) == [""] = ""
-                                | otherwise = mergeStringList (safeFromJustStrings value)
-                 where value = getter package
+getPackageValues getter package = case (getter package) of
+				       Nothing -> ""
+				       Just a  -> concat (intersperse " " a)
 
 printPackage p = "Name:            " ++ (show $ name p) ++ "\n" ++
                  "Version:         " ++ (show $ version p) ++ "\n" ++
