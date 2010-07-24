@@ -32,7 +32,7 @@ import Control.Exception hiding (try)
 data Package =
      Package {name :: Maybe String,
               version :: Maybe String,
-              url ::Maybe  String,
+              url :: Maybe  String,
               repository :: Maybe String,
               licenses :: Maybe [String],
               groups :: Maybe [String],
