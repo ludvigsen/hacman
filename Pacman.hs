@@ -1,9 +1,8 @@
 {-# OPTIONS -fglasgow-exts #-}
 -- | The pacman module gives the Haskell bindings to pacman.
--- Here by package attribute is for instance a package name, version
+-- Here package attribute can be a package name, version
 -- downloadSize, url and so on. A package is the collection of such
--- attributes. By pacman(packetManager) we mean the software that is
--- pacman. 
+-- attributes. Pacman(packetManager) means pacman the software.
 module Pacman
 	(Package(..),
 	 PacError(..),
@@ -135,8 +134,12 @@ si xs = do
        (pid, output) <- liftIO (pipeFrom "pacman" ("-Si":xs))
        parsePac parsePackages output
 
--- | does "pacman -Qs" and returns the list of packages.
-qs :: [String] -> Pacman [Package]
+-- | does "pacman -Qs" and returns the list of packages. That is returned
+-- by that command.
+-- Example: pacman qs ["pacman"] would return the pacman package that is
+-- currently installed.
+qs :: [String] -- ^ A list of arguments to qs
+      -> Pacman [Package]
 qs xs =	do
 	(pid,output) <- liftIO (pipeFrom "pacman" ("-Qs":xs))
 	(pid,pkgOut) <- liftIO (pipeFrom "pacman" ("-Qi":[tail $ takeWhile (/= ' ') (dropWhile (/= '/') output)]))
