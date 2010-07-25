@@ -67,7 +67,7 @@ main = do
         win <- windowNew
         onDestroy win mainQuit -- Make program exit normally
 
-        (Right pacmanPkg) <- pacman (si ["pacman"])
+        (Right pacmanPkg) <- pacman qu
 
         model <- listStoreNew pacmanPkg
         view <- treeViewNewWithModel model
