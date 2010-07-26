@@ -8,6 +8,7 @@ module Pacman
 	 PacError(..),
 	 pacman,
 	 si,
+	 qu,
 	 qs)
 	where
 import System.Cmd.Utils
@@ -97,13 +98,20 @@ parsePackageList =
 	parseLines = parseLine `endBy` (char '\n')
 
 -- | A parsec parser that parses one line in one package given by pacman(packetManager).
+--   Will also parse the nextLines that are indented.
 parseLine :: Parser (String,[String])
 parseLine = do 
 		y <- sepEndBy (many1 $ noneOf " :\n") (char ' ')
                 many (char ' ')
 		string ": "
+		spaces
                 x <- sepBy (sepEndBy (many1 $ noneOf " \n") (char ' ')) (char ' ')
-                return (intercalate " " y, map (intercalate " ") x)
+		z <- many $
+			do
+			try (string "\n ")
+			spaces
+			sepBy (sepEndBy (many1 $ noneOf " \n") (char ' ')) (char ' ')	
+                return (intercalate " " y, map (intercalate " ") (x ++ (concat z)))
 		     
 
 -- | PacError is the errorType of Pacman as a MonadError.
@@ -128,10 +136,17 @@ parsePac p input = case (parse p "" input) of
               Left err -> throwError (ParseError ((show err) ++ "\ngiven Input: \n" ++ input))
               Right x -> return x
 
+qu :: Pacman [Package]
+qu = do
+	(_, output) <- liftIO (pipeFrom "pacman" ["-Qu"])
+	if output == "" 
+	 then return []
+	 else si (map (takeWhile (/= ' ')) $ lines output)
+
 -- | does "pacman -Si" and returns the list of packages.
 si :: [String] -> Pacman [Package]
 si xs = do
-       (pid, output) <- liftIO (pipeFrom "pacman" ("-Si":xs))
+       (_, output) <- liftIO (pipeFrom "pacman" ("-Si":xs))
        parsePac parsePackages output
 
 -- | does "pacman -Qs" and returns the list of packages. That is returned
