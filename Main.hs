@@ -2,6 +2,7 @@ module Main where
 import Pacman 
 import Control.Monad.Error
 import Graphics.UI.Gtk
+import Graphics.UI.Gtk.Glade
 import System.Glib.Signals (on)
 import Data.List
 import Data.Char ( toLower )
@@ -64,17 +65,26 @@ columnList =
 main = do
         -- GTK stuff
         initGUI
-        win <- windowNew
+        Just xml <- xmlNew "hacman.glade"
+        win <- xmlGetWidget xml castToWindow "window1"
+        sw <- xmlGetWidget xml castToScrolledWindow "scrolledwindow1"
+        qb <- xmlGetWidget xml castToImageMenuItem "menuQuit"
+        
         onDestroy win mainQuit -- Make program exit normally
 
-        (Right pacmanPkg) <- pacman qu
+        -- Exits program when user presses Quit button
+        onActivateLeaf qb $ do
+                  widgetDestroy win
+
+        --(Right pacmanPkg) <- pacman qu
+        (Right pacmanPkg) <- pacman (si [])
 
         model <- listStoreNew pacmanPkg
         view <- treeViewNewWithModel model
 
 	sequence (map (makeCell model view) columnList)
 
-        treeViewSetHeadersVisible view True
-        containerAdd win view
+--        treeViewSetHeadersVisible view True
+        containerAdd sw view
         widgetShowAll win
         mainGUI        
